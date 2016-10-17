@@ -28,6 +28,7 @@ tput clear
 
 #display the article
 goto="`sed "${num}q;d" links`"
+
 IFS=/ read protocol blank host query <<< "$goto"
 exec 3</dev/tcp/$host/80
 {
@@ -41,6 +42,37 @@ echo
 sed '1,/0000C000/d' 0<&3>whtml2
 cat whtml2|grep -oP '\K^[^<].+?(?=</p>)'
 
+#usage function 
+function usage
+{
+bold=`tput bold`
+reset=`tput sgr0`
+tput setaf 3
+echo -ne  "${bold}HELP${reset}\n"
+echo -ne "${bold}options ${reset}\n"
+echo -en "1. -a\n"
+echo -ne "archives news headlines on a daily basis at $time\n"
+echo -en "2. -c [ARGUMENT]\n"
+echo -ne "displays the category of news specified in the argument\n"
+}
+
+#parse commands
+while getopts :hac: var
+do
+case $var in
+h)usage;
+exit;;
+a);
+exit;;
+c)cate=$OPTARG;
+category cate;
+exit;;
+\?)echo -ne "invalid option press -h for help"
+exit;;
+:)echo -ne "option requires an argument"
+exit;;
+esac
+done
 
 
 
