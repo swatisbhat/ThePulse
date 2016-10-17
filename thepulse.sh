@@ -99,20 +99,6 @@ echo
 sed '1,/0000C000/d' 0<&3>whtml2
 cat whtml2|grep -oP '\K^[^<].+?(?=</p>)'
 
-#usage function 
-function usage
-{
-bold=`tput bold`
-reset=`tput sgr0`
-tput setaf 3
-echo -ne  "${bold}HELP${reset}\n"
-echo -ne "${bold}options ${reset}\n"
-echo -en "1. -d\n"
-echo -ne "displays the archived news headlines until that day starting from the week\n"
-echo -en "2. -c [ARGUMENT]\n"
-echo -ne "displays the category of news specified in the argument\n"
-}
-
 
 
 
