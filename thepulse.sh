@@ -29,7 +29,7 @@ exit;;
 d)cat log_file;
 exit;;
 c)ctrue=1
-exit;;
+;;
 \?)echo -ne "invalid option press -h for help"
 exit;;
 :)echo -ne "option requires an argument"
