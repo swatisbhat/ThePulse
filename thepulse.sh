@@ -43,6 +43,7 @@ news()
 {
 connect $url
 #display headlines
+tput clear
 cat whtml|grep -oP '<a href="\S+".+data-vr-excerpttitle?>\K.+?(?=</)'>html
 awk 'BEGIN{print "HEADLINES\n";i=1;}{print i++,$0;print "\n";}' html
 
@@ -57,18 +58,38 @@ tput clear
 #display the article
 goto="`sed "${num}q;d" links`"
 connect $goto
-cat whtml|grep -oP '\K^[^<].+?(?=</p>)'
+#cat whtml|grep -oP '\K^[^<].+?(?=</p>)'
+cat whtml|sed '/articleLead/,/script/!d'|grep -oP '\K^[^<].+?(?=</p>)'
 }
 
 #------------------------------------------------------
+connect_cat()
+{
+IFS=/ read protocol blank host query <<< "$1"
+exec 3</dev/tcp/$host/80
+{
+echo GET /$query HTTP/1.1
+echo connection: close
+echo host :$host
+echo
+}>&3;
+
+sed '1,/^$/d' 0<&3>whtml
+}
 
 categorynews()
 {
-category_url=${url}"/"${category}"/"
-connect $category_url;
+ch=${category};
+case "$ch" in
+'business')category_url="http://www.forbes.com";;
+'sport')categor_url="";;
+'tech')category_url="";;
+esac
+connect_cat $category_url;
 #display headlines
-#cat whtml|grep -oP '<a href="\S+".+data-vr-excerpttitle?>\K.+?(?=</)'>html
-#awk 'BEGIN{print "HEADLINES\n";i=1;}{print i++,$0;print "\n";}' html
+tput clear
+cat whtml|sed '/Top\sStories/,/div.headline/!d'|tr -s " "|tr -s "\t"|grep -oP '^[^<][^<]+'|sed '/^$/d'>html
+awk 'BEGIN{print "\t\t\t\tHEADLINES\n\n"}{print $0}' html
 }
 
 #------------------------------------------------------
@@ -99,13 +120,3 @@ categorynews;
 else
 news;
 fi
-
-
-
-
-
-
-
-
-
-
