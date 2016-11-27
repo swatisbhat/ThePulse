@@ -1,0 +1,163 @@
+#!/bin/bash
+
+
+#defaults
+URL="http://in.reuters.com"
+url="http://in.reuters.com/news/archive/worldNews?view=page&page=1&pageSize=10"
+url2="http://in.reuters.com/news/archive/worldNews?view=page&page=2&pageSize=10"
+url3="http://in.reuters.com/news/archive/worldNews?view=page&page=3&pageSize=10"
+ctrue=0
+
+#-------------------------------------------------------
+
+#color settings
+BOLD=`tput bold`
+LINE=`tput smul`
+RESET=`tput sgr0`
+CY=`tput setaf 67`
+GR=`tput setaf 10`
+WH=`tput setaf 15`
+
+#-------------------------------------------------------
+
+
+#usage function
+usage()
+{
+
+  echo -e  "${BOLD}${LINE}${CY}HELP${RESET}"
+  echo
+  echo -e "${BOLD}${CY}USAGE:${RESET}"
+  echo
+  echo -e "\t${BOLD}${WH} pulse  [OPTIONS] ${RESET}"
+  echo -e "\t${BOLD}${GR} Displays news headlines of the day${RESET}"
+  echo
+  echo -e "${BOLD}${CY}OPTIONS:${RESET}"
+  echo -e "\t${BOLD}${WH} -h${RESET}               ${BOLD}${GR} Displays the help menu${RESET}"
+  echo -e "\t${BOLD}${WH} -d${RESET}               ${BOLD}${GR} Displays the archived news headlines until that day starting from the week${RESET}"
+  echo -e "\t${BOLD}${WH} -c [ARGUMENT]${RESET}    ${BOLD}${GR} Displays the news specific to the argument${RESET}"
+  echo
+  echo -e "\t\t${BOLD}${CY}Arguments:${RESET}"
+  echo
+
+2
+  echo -e "\t\t${GR}${BOLD}business${RESET}          ${WH}${BOLD}Business headlines${RESET}"
+  echo -e "\t\t${GR}${BOLD}sport${RESET}             ${WH}${BOLD}Sports news${RESET}"
+  echo -e "\t\t${GR}${BOLD}tech${RESET}             ${WH}${BOLD}Science and Tech headlines${RESET}"
+  echo -e "\t\t${GR}${BOLD}entertainment${RESET}     ${WH}${BOLD}Entertainment headlines${RESET}"
+  echo -e "\t\t${GR}${BOLD}lifestyle${RESET}         ${WH}${BOLD}Lifestyle news${RESET}"
+  echo -e "\t\t${GR}${BOLD}india${RESET}             ${WH}${BOLD}The country's news${RESET}"
+  echo
+
+}
+
+#------------------------------------------------------
+
+#make a socket connection to the website and retrieve html
+connect()
+{
+curl -s $1>whtml
+}
+
+#------------------------------------------------------
+
+#function to read article chosen by user
+read_article()
+{
+#take users choice of article to read
+echo -e "Article to read\n"
+read num
+echo -e "\n"
+
+#display the article
+goto="`sed "${num}q;d" links`"
+
+#checking for relative links
+if [ "${goto:0:4}" != "http" ]
+then
+export URL goto
+export abs_link=`python -c 'import os; base=os.environ["URL"]; rel=os.environ["goto"]; from urlparse import urljoin; print urljoin(str(base).strip(),str(rel).strip())'`
+else
+abs_link=$goto
+fi
+connect $abs_link
+cat whtml|sed '/article-text/,/script/!d'|grep -oP '<span.+?<p>\K.*?(?=</p>)'|perl -pe 's|<.+?>||g'>READ
+awk 'BEGIN{print "ARTICLE\n";}{print $0;print "\n";}' READ
+}
+#------------------------------------------------------
+
+#general news (default)
+news()
+{
+#display headlines
+connect $url
+cat whtml|grep -oP '<h3 class="story-title"><a href.+?>\K.+?(?=</a>)'>Headlines
+cat whtml|grep -oP '<h3 class="story-title"><a href="\K.+?(?=")'>links
+
+connect $url2
+cat whtml|grep -oP '<h3 class="story-title"><a href.+?>\K.+?(?=</a>)'>>Headlines
+cat whtml|grep -oP '<h3 class="story-title"><a href="\K.+?(?=")'>>links
+
+connect $url3
+cat whtml|grep -oP '<h3 class="story-title"><a href.+?>\K.+?(?=</a>)'>>Headlines
+cat whtml|grep -oP '<h3 class="story-title"><a href="\K.+?(?=")'>>links
+
+awk 'BEGIN{print "HEADLINES\n";i=1;}{print i++,$0;print "\n";}' Headlines
+read_article;
+}
+
+#------------------------------------------------------
+
+#category news- category as specified by user
+categorynews()
+{
+ch=$category
+case "$ch" in
+'business')category_url="http://in.reuters.com/news/archive/businessNews?view=page";;
+'sport')category_url="http://in.reuters.com/news/archive/sportsNews?view=page";;
+'tech')category_url="http://in.reuters.com/news/archive/technologyNews?view=page";;
+'entertainmet')category_url="http://in.reuters.com/news/archive/entertainmentNews?view=page";;
+'lifestyle')category_url="http://in.reuters.com/news/archive/lifestyleMolt?view=page";;
+'india')category_url="http://in.reuters.com/news/archive/topNews?view=page&page=2&pageSize=10";;
+esac
+connect $category_url;
+#display headlines
+#tput clear
+cat whtml|grep -oP '<h3 class="story-title"><a href.+?>\K.+?(?=</a>)'>Headlines
+cat whtml|grep -oP '<h3 class="story-title"><a href="\K.+?(?=")'>links
+
+awk 'BEGIN{print "HEADLINES\n";i=1;}{print i++,$0;print "\n";}' Headlines
+read_article;
+}
+
+#------------------------------------------------------
+#parse options and arguments using getopts
+while getopts ':hdc:' var
+do
+  case $var in
+     h)usage;
+       exit;;
+     d)cat news_archive;
+       exit;;
+     c)category=$OPTARG
+       ctrue=1;;
+     \?)echo -ne "invalid option press -h for help"
+       exit;;
+     :)echo -ne "option requires an argument"
+       exit;;
+  esac
+done
+
+#------------------------------------------------------
+
+#condition to check if user wants news of a specific category
+if [[ $ctrue -eq 1 ]]
+then
+categorynews;
+else
+news;
+fi
+
+#cleanup
+rm links whtml
+
