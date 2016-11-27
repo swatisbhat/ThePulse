@@ -1,2 +1,3 @@
 #!/bin/bash
-./socket.sh 1>log_file
+bash pulse 1>>$HOME/ThePulse/news_archive  
+
